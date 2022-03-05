@@ -20,6 +20,10 @@ double* solve(double x, double y, double z, double phi);
 
 double* invkin(double x, double y, double z, double phi);
 
+double* where(double theta1, double theta2, double d3, double theta4);
+
+double* kin(double theta1, double theta2, double d3, double theta4);
+
 int main(int argc, char* argv[])
 {
 	double x;
@@ -69,7 +73,7 @@ int main(int argc, char* argv[])
 				cout << "Theta 4 : ";
 				cin >> theta4;
 
-				WHERE(theta1, theta2, d3, theta4);
+				where(theta1, theta2, d3, theta4);
 			}
 			else if (ch == '2') {
 				cout << "SOLVE\nPlease input the values for x (m), y (m), z (m), and phi (deg)\nx : ";
@@ -110,18 +114,17 @@ double* where(double theta1, double theta2, double d3, double theta4) {
 	double T34[4][4];
 	double T45[4][4];
 	double T05[4][4];
-	
+
+	double result[5] = {};;
 	//T01, T12, T34, same rotation matrices Z
 	//Distance need to be entered
-	T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1}};
-	T12 = {{cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	T23 = {{1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, };
-	T34 = {{cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1};
-	T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1}};
+	//T12 = {{cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, } };
+	//T34 = { {cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
 	//T05 = T01 * T12 * T23 * T34 * T45;
-
-
-
+	return result;
 }
 
 double* kin(double theta1, double theta2, double d3, double theta4) {
@@ -132,15 +135,17 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	double T45[4][4];
 	double T05[4][4];
 
+	double result[5] = {};
+
 	//T01, T12, T34, same rotation matrices Z
 	//Distance need to be entered
-	T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	T12 = { {cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, };
-	T34 = {{cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1};
-	T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T12 = { {cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, } };
+	//T34 = { {cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
 	//T05 = T01 * T12 * T23 * T34 * T45;
-
+	return result;
 }
 
 
