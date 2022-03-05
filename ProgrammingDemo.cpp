@@ -185,10 +185,32 @@ double* solve(double x, double y, double z, double phi) {
 		}
 
 		if (q1Valid && q2Valid) {
-			q[0] = jointVectors[0];
-			q[1] = jointVectors[1];
-			q[2] = jointVectors[2];
-			q[3] = jointVectors[3];
+			JOINT curr;
+			GetConfiguration(curr);
+
+			double dif1_1 = abs(curr[0] - jointVectors[0]);
+			double dif2_1 = abs(curr[1] - jointVectors[1]);
+			double dif3_1 = abs(curr[3] - jointVectors[3]);
+
+			double dif1_2 = abs(curr[0] - jointVectors[4]);
+			double dif2_2 = abs(curr[1] - jointVectors[5]);
+			double dif3_2 = abs(curr[3] - jointVectors[7]);
+
+			double difTot1 = dif1_1 + dif2_1 + dif3_1;
+			double difTot2 = dif1_2 + dif2_2 + dif3_2;
+
+			if (difTot1 > difTot2) {
+				q[0] = jointVectors[4];
+				q[1] = jointVectors[5];
+				q[2] = jointVectors[6];
+				q[3] = jointVectors[7];
+			}
+			else {
+				q[0] = jointVectors[0];
+				q[1] = jointVectors[1];
+				q[2] = jointVectors[2];
+				q[3] = jointVectors[3];
+			}
 		}
 		else if (!q1Valid && !q2Valid) {
 			q[4] = -1.0;
