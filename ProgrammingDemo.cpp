@@ -30,7 +30,6 @@ int main(int argc, char* argv[])
 	/*JOINT q1;
 	JOINT q2;*/
 	printf("Keep this window in focus, and...\n");
-	
 
 	char ch;
 	int c;
@@ -40,15 +39,15 @@ int main(int argc, char* argv[])
 	double* q;
 
 	const int ESC = 27;
-	
+
 	printf("Press any key to continue \n");
 	printf("Press ESC to exit \n");
 
-	c = _getch() ;
+	c = _getch();
 
 	while (1)
 	{
-		
+
 		if (c != ESC)
 		{
 			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function\n";
@@ -56,6 +55,21 @@ int main(int argc, char* argv[])
 
 			if (ch == '1') {
 				// do where func
+				double theta1 = 0;
+				double theta2 = 0;
+				double d3 = 0;
+				double theta4 = 0;
+
+				cout << "Where\nPlease input the values for each Joint (Theta 1, Theta 2, Distance 3, Theta 4)\nTheta 1:";
+				cin >> theta1;
+				cout << "Theta 2 : ";
+				cin >> theta2;
+				cout << "Distance 3 : ";
+				cin >> d3;
+				cout << "Theta 4 : ";
+				cin >> theta4;
+
+				WHERE(theta1, theta2, d3, theta4);
 			}
 			else if (ch == '2') {
 				cout << "SOLVE\nPlease input the values for x (m), y (m), z (m), and phi (deg)\nx : ";
@@ -72,7 +86,7 @@ int main(int argc, char* argv[])
 					printf("The coordinates entered are outside the joint space of the robot.\n\n");
 				}
 				else {
-					JOINT qFinal = {q[0], q[1], q[2], q[3]};
+					JOINT qFinal = { q[0], q[1], q[2], q[3] };
 					MoveToConfiguration(qFinal, true);
 				}
 			}
@@ -80,16 +94,61 @@ int main(int argc, char* argv[])
 			printf("Press any key to continue \n");
 			printf("Press ESC to exit \n");
 			c = _getch();
-			
+
 		}
 		else break;
 	}
-	
+
 
 	return 0;
 }
 
-double * solve(double x, double y, double z, double phi) {
+double* where(double theta1, double theta2, double d3, double theta4) {
+	double T01[4][4];
+	double T12[4][4];
+	double T23[4][4];
+	double T34[4][4];
+	double T45[4][4];
+	double T05[4][4];
+	
+	//T01, T12, T34, same rotation matrices Z
+	//Distance need to be entered
+	T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1}};
+	T12 = {{cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	T23 = {{1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, };
+	T34 = {{cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1};
+	T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T05 = T01 * T12 * T23 * T34 * T45;
+
+
+
+}
+
+double* kin(double theta1, double theta2, double d3, double theta4) {
+	double T01[4][4];
+	double T12[4][4];
+	double T23[4][4];
+	double T34[4][4];
+	double T45[4][4];
+	double T05[4][4];
+
+	//T01, T12, T34, same rotation matrices Z
+	//Distance need to be entered
+	T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	T12 = { {cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, };
+	T34 = {{cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1};
+	T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//T05 = T01 * T12 * T23 * T34 * T45;
+
+}
+
+
+
+
+
+
+double* solve(double x, double y, double z, double phi) {
 	bool q1Valid = true;
 	bool q2Valid = true;
 	double q[5] = {};
@@ -99,7 +158,7 @@ double * solve(double x, double y, double z, double phi) {
 	if (jointVectors[8] == -1.0) {
 		q[4] = -1.0;
 		return q;
-	} 
+	}
 	else {
 		double theta1_1 = jointVectors[0];
 		double theta2_1 = jointVectors[1];
@@ -184,5 +243,5 @@ double* invkin(double x, double y, double z, double phi) {
 		jointVectors[7] = theta4_2 * 180 / PI;
 		return jointVectors;
 	}
-	
+
 }
