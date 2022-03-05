@@ -149,10 +149,6 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 }
 
 
-
-
-
-
 double* solve(double x, double y, double z, double phi) {
 	bool q1Valid = true;
 	bool q2Valid = true;
