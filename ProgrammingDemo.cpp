@@ -74,6 +74,14 @@ int main(int argc, char* argv[])
 				cin >> theta4;
 
 				where(theta1, theta2, d3, theta4);
+
+				if (q[4] == -1.0) {
+					printf("The joint parameters entered are outside of the robots range of motion");
+				}
+				else {
+					JOINT qFinal = { q[0], q[1], q[2], q[3] };
+					MoveToConfiguration(qFinal, true);
+				}
 			}
 			else if (ch == '2') {
 				cout << "SOLVE\nPlease input the values for x (m), y (m), z (m), and phi (deg)\nx : ";
@@ -108,6 +116,33 @@ int main(int argc, char* argv[])
 }
 
 double* where(double theta1, double theta2, double d3, double theta4) {
+	bool qValid = true;
+
+	double q[5] = {};
+	q[4] = 0.0;
+
+	if (theta1 < -150.0 || theta1 > 150.0 ||
+		theta2 -100.0 || theta2 > 100.0 ||
+		d3 < -200.0 || d3 > -100.0 ||
+		theta4 < -160.0 || theta4 > 160.0) {
+		printf("q1 is invalid\n");
+		qValid = false;
+	}
+
+	if (qValid) {
+		JOINT curr;
+		GetConfiguration(curr);
+
+	}
+	else if (!qValid) {
+		q[4] = -1.0;
+
+	}
+
+	return q;
+}
+
+	/*
 	double T01[4][4];
 	double T12[4][4];
 	double T23[4][4];
@@ -125,6 +160,7 @@ double* where(double theta1, double theta2, double d3, double theta4) {
 	//T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
 	//T05 = T01 * T12 * T23 * T34 * T45;
 	return result;
+	*/
 }
 
 double* kin(double theta1, double theta2, double d3, double theta4) {
