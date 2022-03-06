@@ -133,7 +133,7 @@ double* where(double theta1, double theta2, double d3, double theta4) {
 	double q[5] = {};
 	q[4] = 0.0;
 
-	if (theta1 < -150.0 || theta1 > 150.0 || theta2 < -100.0 || theta2 > 100.0 || d3 < -200.0 || d3 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
+	if (theta1 < -150.0 || theta1 > 150.0 || theta2 < -100.0 || theta2 > 100.0 || d3*1000 < -200.0 || d3*1000 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
 		printf("q1 is invalid\n");
 		qValid = false;
 	}
@@ -201,7 +201,7 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	T T3 = matrixMul(T2.result, T34);
 	T T4 = matrixMul(T3.result, T45);
 
-	double phi = 1;
+	double phi = theta1+theta2+theta4;
 	double result[5] = {T4.result[0][3],
 						T4.result[1][3],
 						T4.result[2][3],
