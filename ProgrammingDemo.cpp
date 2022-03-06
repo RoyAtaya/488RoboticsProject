@@ -64,11 +64,9 @@ int main(int argc, char* argv[]){
 
 	c = _getch();
 
-	while (1)
-	{
+	while (1){
 
-		if (c != ESC)
-		{
+		if (c != ESC){
 			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function\n";
 			ch = _getch();
 
@@ -94,7 +92,7 @@ int main(int argc, char* argv[]){
 					printf("The joint parameters entered are outside of the robots range of motion");
 				}
 				else {
-					JOINT qFinal = { q[0], q[1], q[2], q[3] };
+					JOINT qFinal = {q[0], q[1], q[2], q[3]};
 					MoveToConfiguration(qFinal, true);
 				}
 			}
@@ -118,14 +116,13 @@ int main(int argc, char* argv[]){
 				}
 			}
 
-			printf("Press any key to continue \n");
-			printf("Press ESC to exit \n");
+			printf("Press any key to continue \n\n");
+			printf("Press ESC to exit \n\n");
 			c = _getch();
 
 		}
 		else break;
 	}
-
 
 	return 0;
 }
@@ -136,10 +133,10 @@ double* where(double theta1, double theta2, double d3, double theta4) {
 	double q[5] = {};
 	q[4] = 0.0;
 
-	//if (theta1 < -150.0 || theta1 > 150.0 || theta2 -100.0 || theta2 > 100.0 || d3 < -200.0 || d3 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
-		//printf("q1 is invalid\n");
-		//qValid = false;
-	//}
+	if (theta1 < -150.0 || theta1 > 150.0 || theta2 < -100.0 || theta2 > 100.0 || d3 < -200.0 || d3 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
+		printf("q1 is invalid\n");
+		qValid = false;
+	}
 	double* jointVectors;
 	jointVectors = kin(theta1, theta2, d3, theta4);
 	q[0] = jointVectors[0];
@@ -164,7 +161,7 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	theta4 = DEG2RAD(theta4);
 
 	//T01, T12, T34, same rotation matrices Z
-	//Distance need to be corrected
+	//Distance needs to be corrected
 	double T01[4][4] = {
 		{valueRounding(cos(theta1)), valueRounding(-sin(theta1)), 0, 0},
 		{valueRounding(sin(theta1)), valueRounding(cos(theta1)), 0, 0},
@@ -208,7 +205,7 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	double result[5] = {T4.result[0][3],
 						T4.result[1][3],
 						T4.result[2][3],
-							phi};
+						phi};
 	return result;
 }
 
@@ -222,7 +219,6 @@ T matrixMul(double T1[4][4], double T2[4][4]) {
 			}
 	return result;
 }
-
 
 double* solve(double x, double y, double z, double phi) {
 	bool q1Valid = true;
