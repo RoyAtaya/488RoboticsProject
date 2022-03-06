@@ -36,9 +36,7 @@ struct T {
 
 T matrixMul(double T1[4][4], double T2[4][4]);
 
-double valueRounding(double value) {
-	return round(value * 1000.0) / 1000.0;
-}
+double valueRounding(double value);
 
 int main(int argc, char* argv[]){
 	double x;
@@ -201,12 +199,17 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	T T3 = matrixMul(T2.result, T34);
 	T T4 = matrixMul(T3.result, T45);
 
+	// phi calculation
 	double phi = theta1+theta2+theta4;
 	double result[5] = {T4.result[0][3],
 						T4.result[1][3],
 						T4.result[2][3],
 						phi};
 	return result;
+}
+
+double valueRounding(double value) {
+	return round(value * 1000.0) / 1000.0;
 }
 
 T matrixMul(double T1[4][4], double T2[4][4]) {
