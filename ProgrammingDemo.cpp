@@ -10,20 +10,24 @@
 #include <cmath>
 using namespace std;
 
+//robot constants for lengths
 const double a1 = 0.195;
 const double a2 = 0.142;
 const double d1 = 0.405;
 const double d2 = 0.07;
 const double d4 = -0.140;
-
-
-double* solve(double x, double y, double z, double phi);
-
-double* invkin(double x, double y, double z, double phi);
-
-double* where(double theta1, double theta2, double d3, double theta4);
-
-double* kin(double theta1, double theta2, double d3, double theta4);
+/*
+struct location {
+	double x;
+	double y;
+	double z;
+	double phi;
+};
+*/
+double* where(double theta1, double theta2, double d3, double theta4/*, double* x, double* y, double* z, double* phi*/);	//Where function used to find where the robot will end up with joint parameters
+double* kin(double theta1, double theta2, double d3, double theta4);	//Solves the Transform Matrices from joint parameters
+double* solve(double x, double y, double z, double phi);				//Solve function used to find joint parameters of the end effector location
+double* invkin(double x, double y, double z, double phi);				//Solves the Inverse Kinematics using the robots parameters 
 
 struct T {
 	double result[4][4] = {
@@ -38,7 +42,12 @@ T matrixMul(double T1[4][4], double T2[4][4]);
 
 double valueRounding(double value);
 
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[]) {
+	double theta1 = 0;	//First Joint Parameter
+	double theta2 = 0;	//Second Joint Parameter
+	double d3 = 0;		//Third Joint Parameter
+	double theta4 = 0;	//Fourth Joint Parameter
+
 	double x;
 	double y;
 	double z;
@@ -62,35 +71,32 @@ int main(int argc, char* argv[]){
 
 	c = _getch();
 
-	while (1){
+	while (1) {
 
-		if (c != ESC){
+		if (c != ESC) {
 			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function\n";
 			ch = _getch();
 
-			if (ch == '1') {
-				// do where func
-				double theta1 = 0;
-				double theta2 = 0;
-				double d3 = 0;
-				double theta4 = 0;
-				//double q[5] = {};
+			if (ch == '1') { //Forward Kinematics (WHERE/KIN)
 				cout << "Where\nPlease input the values for each Joint (Theta 1 (deg), Theta 2 (deg), Distance 3 (m), Theta 4 (deg))\nTheta 1: ";
-				cin >> theta1;
+				cin >> theta1; //Enter in the First Joint Angle
 				cout << "Theta 2: ";
-				cin >> theta2;
+				cin >> theta2; //Enter in the Second Joint Angle
 				cout << "Distance 3: ";
-				cin >> d3;
+				cin >> d3; //Enter in the Third Joint Translation
 				cout << "Theta 4: ";
-				cin >> theta4;
+				cin >> theta4;//Enter in the Fourth Joint Angle
 
-				q = where(theta1, theta2, d3, theta4);
-				printf("Joint vector 1: [%lf, %lf, %lf, %lf, %lf]\n", q[0], q[1], q[2], q[3], q[4]);
-				if (q[4] == -1.0) {
+				if (theta1 < -150.0 || theta1 > 150.0 || theta2 < -100.0 || theta2 > 100.0 || d3 < -200.0 || d3 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
 					printf("The joint parameters entered are outside of the robots range of motion");
 				}
 				else {
-					JOINT qFinal = {q[0], q[1], q[2], q[3]};
+					//Use where to get return the x,y,z,phi values possibly
+					q = where(theta1, theta2, d3, theta4);
+					//need to return x,y,z,phi
+					printf("Joint vector 1: [%lf, %lf, %lf, %lf]\n", theta1, theta2, d3, theta4);
+					printf("The End Effector Values are: {%lf, %lf, %lf, %lf]\n", q[0], q[1], q[2], q[3]);
+					JOINT qFinal = { theta1, theta2, d3, theta4};
 					MoveToConfiguration(qFinal, true);
 				}
 			}
@@ -126,71 +132,58 @@ int main(int argc, char* argv[]){
 }
 
 double* where(double theta1, double theta2, double d3, double theta4) {
-	bool qValid = true;
+	double q[4] = {};
 
-	double q[5] = {};
-	q[4] = 0.0;
-
-	if (theta1 < -150.0 || theta1 > 150.0 || theta2 < -100.0 || theta2 > 100.0 || d3*1000 < -200.0 || d3*1000 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
-		printf("q1 is invalid\n");
-		qValid = false;
-	}
 	double* jointVectors;
 	jointVectors = kin(theta1, theta2, d3, theta4);
+
 	q[0] = jointVectors[0];
 	q[1] = jointVectors[1];
 	q[2] = jointVectors[2];
 	q[3] = jointVectors[3];
 
-	if (qValid) {
-		JOINT curr;
-		GetConfiguration(curr);
-	}
-	else if (!qValid) {
-		q[4] = -1.0;
-	}
-
+	JOINT curr;
+	GetConfiguration(curr);
 	return q;
 }
 
 double* kin(double theta1, double theta2, double d3, double theta4) {
-	theta1 = DEG2RAD(theta1);
+	static double jointVectors[4] = {};
+	theta1 = DEG2RAD(theta1); 
 	theta2 = DEG2RAD(theta2);
 	theta4 = DEG2RAD(theta4);
 
-	//T01, T12, T34, same rotation matrices Z
-	//Distance needs to be corrected
-	double T01[4][4] = {
+	double T01[4][4] = { //Translation Matrix
 		{valueRounding(cos(theta1)), valueRounding(-sin(theta1)), 0, 0},
 		{valueRounding(sin(theta1)), valueRounding(cos(theta1)), 0, 0},
 		{0, 0, 1, d1},
 		{0, 0, 0, 1}
 	};
-	double T12[4][4] = { 
+	double T12[4][4] = { //Translation Matrix
 		{valueRounding(cos(theta2)), valueRounding(-sin(theta2)), 0, a1},
 		{valueRounding(sin(theta2)), valueRounding(cos(theta2)), 0, 0},
-		{0, 0, 1, d2}, 
-		{0, 0, 0, 1} 
+		{0, 0, 1, d2},
+		{0, 0, 0, 1}
 	};
-	double T23[4][4] = { 
-		{1,  0,  0,  a2}, 
-		{0, -1,  0,  0}, 
-		{0,  0, -1, -d2}, 
-		{0,  0,  0,  1} 
+	double T23[4][4] = { //Translation Matrix
+		{1,  0,  0,  a2},
+		{0, -1,  0,  0},
+		{0,  0, -1, -d2},
+		{0,  0,  0,  1}
 	};
 
-	double T34[4][4] = { 
+	double T34[4][4] = { //Translation Matrix
 		{valueRounding(cos(theta4)), valueRounding(-sin(theta4)), 0, 0}, // last element of row was a 1
 		{valueRounding(sin(theta4)), valueRounding(cos(theta4)), 0, 0}, // last element of row was a 1
-		{0, 0, 1, d3}, 
-		{0, 0, 0, 1} 
+		{0, 0, 1, d3},
+		{0, 0, 0, 1}
 	};
 
-	double T45[4][4] = { 
-		{1, 0, 0, 0}, 
-		{0, 1, 0, 0}, 
-		{0, 0, 1, 0}, // last element of row was a 1
-		{0, 0, 0, 1} 
+	double T45[4][4] = {//Translation Matrix
+		{1, 0, 0, 0},
+		{0, 1, 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1}
 	};
 
 	//T05 = T01 * T12 * T23 * T34 * T45;
@@ -199,13 +192,15 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	T T3 = matrixMul(T2.result, T34);
 	T T4 = matrixMul(T3.result, T45);
 
-	// phi calculation
-	double phi = theta1+theta2+theta4;
-	double result[5] = {T4.result[0][3],
-						T4.result[1][3],
-						T4.result[2][3],
-						phi};
-	return result;
+	// phi calculation 
+	double phi = theta1 + theta2 + theta4;
+	phi = RAD2DEG(phi);
+
+	jointVectors[0] = T4.result[0][3];
+	jointVectors[1] = T4.result[1][3];
+	jointVectors[2] = T4.result[2][3];
+	jointVectors[3] = phi;
+	return jointVectors;
 }
 
 double valueRounding(double value) {
