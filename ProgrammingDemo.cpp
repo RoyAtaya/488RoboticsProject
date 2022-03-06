@@ -16,6 +16,7 @@ const double d1 = 0.405;
 const double d2 = 0.07;
 const double d4 = -0.140;
 
+
 double* solve(double x, double y, double z, double phi);
 
 double* invkin(double x, double y, double z, double phi);
@@ -24,8 +25,22 @@ double* where(double theta1, double theta2, double d3, double theta4);
 
 double* kin(double theta1, double theta2, double d3, double theta4);
 
-int main(int argc, char* argv[])
-{
+struct T {
+	double result[4][4] = {
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0}
+	};
+};
+
+T matrixMul(double T1[4][4], double T2[4][4]);
+
+double valueRounding(double value) {
+	return round(value * 1000.0) / 1000.0;
+}
+
+int main(int argc, char* argv[]){
 	double x;
 	double y;
 	double z;
@@ -63,18 +78,18 @@ int main(int argc, char* argv[])
 				double theta2 = 0;
 				double d3 = 0;
 				double theta4 = 0;
-
-				cout << "Where\nPlease input the values for each Joint (Theta 1, Theta 2, Distance 3, Theta 4)\nTheta 1:";
+				//double q[5] = {};
+				cout << "Where\nPlease input the values for each Joint (Theta 1, Theta 2, Distance 3, Theta 4)\nTheta 1: ";
 				cin >> theta1;
-				cout << "Theta 2 : ";
+				cout << "Theta 2: ";
 				cin >> theta2;
-				cout << "Distance 3 : ";
+				cout << "Distance 3: ";
 				cin >> d3;
-				cout << "Theta 4 : ";
+				cout << "Theta 4: ";
 				cin >> theta4;
 
-				where(theta1, theta2, d3, theta4);
-
+				q = where(theta1, theta2, d3, theta4);
+				printf("Joint vector 1: [%lf, %lf, %lf, %lf, %lf]\n", q[0], q[1], q[2], q[3], q[4]);
 				if (q[4] == -1.0) {
 					printf("The joint parameters entered are outside of the robots range of motion");
 				}
@@ -121,66 +136,90 @@ double* where(double theta1, double theta2, double d3, double theta4) {
 	double q[5] = {};
 	q[4] = 0.0;
 
-	if (theta1 < -150.0 || theta1 > 150.0 ||
-		theta2 -100.0 || theta2 > 100.0 ||
-		d3 < -200.0 || d3 > -100.0 ||
-		theta4 < -160.0 || theta4 > 160.0) {
-		printf("q1 is invalid\n");
-		qValid = false;
-	}
+	//if (theta1 < -150.0 || theta1 > 150.0 || theta2 -100.0 || theta2 > 100.0 || d3 < -200.0 || d3 > -100.0 || theta4 < -160.0 || theta4 > 160.0) {
+		//printf("q1 is invalid\n");
+		//qValid = false;
+	//}
+	double* jointVectors;
+	jointVectors = kin(theta1, theta2, d3, theta4);
+	q[0] = jointVectors[0];
+	q[1] = jointVectors[1];
+	q[2] = jointVectors[2];
+	q[3] = jointVectors[3];
 
 	if (qValid) {
 		JOINT curr;
 		GetConfiguration(curr);
-
 	}
 	else if (!qValid) {
 		q[4] = -1.0;
-
 	}
 
 	return q;
 }
 
-	/*
-	double T01[4][4];
-	double T12[4][4];
-	double T23[4][4];
-	double T34[4][4];
-	double T45[4][4];
-	double T05[4][4];
+double* kin(double theta1, double theta2, double d3, double theta4) {
+	theta1 = DEG2RAD(theta1);
+	theta2 = DEG2RAD(theta2);
+	theta4 = DEG2RAD(theta4);
 
-	double result[5] = {};;
 	//T01, T12, T34, same rotation matrices Z
-	//Distance need to be entered
-	//T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1}};
-	//T12 = {{cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, } };
-	//T34 = { {cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
+	//Distance need to be corrected
+	double T01[4][4] = {
+		{valueRounding(cos(theta1)), valueRounding(-sin(theta1)), 0, 0},
+		{valueRounding(sin(theta1)), valueRounding(cos(theta1)), 0, 0},
+		{0, 0, 1, d1},
+		{0, 0, 0, 1}
+	};
+	double T12[4][4] = { 
+		{valueRounding(cos(theta2)), valueRounding(-sin(theta2)), 0, a1},
+		{valueRounding(sin(theta2)), valueRounding(cos(theta2)), 0, 0},
+		{0, 0, 1, d2}, 
+		{0, 0, 0, 1} 
+	};
+	double T23[4][4] = { 
+		{1,  0,  0,  a2}, 
+		{0, -1,  0,  0}, 
+		{0,  0, -1, -d2}, 
+		{0,  0,  0,  1} 
+	};
+
+	double T34[4][4] = { 
+		{valueRounding(cos(theta4)), valueRounding(-sin(theta4)), 0, 0}, // last element of row was a 1
+		{valueRounding(sin(theta4)), valueRounding(cos(theta4)), 0, 0}, // last element of row was a 1
+		{0, 0, 1, d3}, 
+		{0, 0, 0, 1} 
+	};
+
+	double T45[4][4] = { 
+		{1, 0, 0, 0}, 
+		{0, 1, 0, 0}, 
+		{0, 0, 1, 0}, // last element of row was a 1
+		{0, 0, 0, 1} 
+	};
+
 	//T05 = T01 * T12 * T23 * T34 * T45;
+	T T1 = matrixMul(T01, T12);
+	T T2 = matrixMul(T1.result, T23);
+	T T3 = matrixMul(T2.result, T34);
+	T T4 = matrixMul(T3.result, T45);
+
+	double phi = 1;
+	double result[5] = {T4.result[0][3],
+						T4.result[1][3],
+						T4.result[2][3],
+							phi};
 	return result;
-	*/
 }
 
-double* kin(double theta1, double theta2, double d3, double theta4) {
-	double T01[4][4];
-	double T12[4][4];
-	double T23[4][4];
-	double T34[4][4];
-	double T45[4][4];
-	double T05[4][4];
+T matrixMul(double T1[4][4], double T2[4][4]) {
+	T result;
 
-	double result[5] = {};
-
-	//T01, T12, T34, same rotation matrices Z
-	//Distance need to be entered
-	//T01 = { {cos(theta1), -sin(theta1), 0, }, {sin(theta1), cos(theta1), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T12 = { {cos(theta2), -sin(theta2), 0, }, {sin(theta2), cos(theta2), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T23 = { {1, 0, 0, }, {0, -1, 0, }, {0, 0, -1, }, {0, 0, 0, } };
-	//T34 = { {cos(theta4), -sin(theta4), 0, }, {sin(theta4), cos(theta4), 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T45 = {{1, 0, 0, }, {0, 1, 0, }, {0, 0, 1, }, {0, 0, 0, 1} };
-	//T05 = T01 * T12 * T23 * T34 * T45;
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+			for (int k = 0; k < 4; ++k) {
+				result.result[i][j] += T1[i][k] * T2[k][j];
+			}
 	return result;
 }
 
