@@ -77,7 +77,7 @@ int main(int argc, char* argv[]){
 				double d3 = 0;
 				double theta4 = 0;
 				//double q[5] = {};
-				cout << "Where\nPlease input the values for each Joint (Theta 1, Theta 2, Distance 3, Theta 4)\nTheta 1: ";
+				cout << "Where\nPlease input the values for each Joint (Theta 1 (deg), Theta 2 (deg), Distance 3 (m), Theta 4 (deg))\nTheta 1: ";
 				cin >> theta1;
 				cout << "Theta 2: ";
 				cin >> theta2;
