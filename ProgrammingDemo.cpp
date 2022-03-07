@@ -16,15 +16,8 @@ const double a2 = 0.142;
 const double d1 = 0.405;
 const double d2 = 0.07;
 const double d4 = -0.140;
-/*
-struct location {
-	double x;
-	double y;
-	double z;
-	double phi;
-};
-*/
-double* where(double theta1, double theta2, double d3, double theta4/*, double* x, double* y, double* z, double* phi*/);	//Where function used to find where the robot will end up with joint parameters
+
+double* where(double theta1, double theta2, double d3, double theta4);	//Where function used to find where the robot will end up with joint parameters
 double* kin(double theta1, double theta2, double d3, double theta4);	//Solves the Transform Matrices from joint parameters
 double* solve(double x, double y, double z, double phi);				//Solve function used to find joint parameters of the end effector location
 double* invkin(double x, double y, double z, double phi);				//Solves the Inverse Kinematics using the robots parameters 
@@ -91,11 +84,10 @@ int main(int argc, char* argv[]) {
 					printf("The joint parameters entered are outside of the robots range of motion");
 				}
 				else {
-					//Use where to get return the x,y,z,phi values possibly
+					//Use where to get return the x,y,z,phi values
 					q = where(theta1, theta2, d3, theta4);
-					//need to return x,y,z,phi
-					printf("Joint vector 1: [%lf, %lf, %lf, %lf]\n", theta1, theta2, d3, theta4);
-					printf("The End Effector Values are: {%lf, %lf, %lf, %lf]\n", q[0], q[1], q[2], q[3]);
+					printf("Joint vector 1: [%lf, %lf, %lf, %lf]\n", theta1, theta2, d3, theta4); //prints the joints
+					printf("The End Effector Values are: {%lf, %lf, %lf, %lf]\n", q[0], q[1], q[2], q[3]); //prints the x,y,z,phi
 					JOINT qFinal = { theta1, theta2, d3, theta4};
 					MoveToConfiguration(qFinal, true);
 				}
@@ -127,24 +119,16 @@ int main(int argc, char* argv[]) {
 		}
 		else break;
 	}
-
 	return 0;
 }
 
 double* where(double theta1, double theta2, double d3, double theta4) {
-	double q[4] = {};
-
 	double* jointVectors;
 	jointVectors = kin(theta1, theta2, d3, theta4);
 
-	q[0] = jointVectors[0];
-	q[1] = jointVectors[1];
-	q[2] = jointVectors[2];
-	q[3] = jointVectors[3];
-
 	JOINT curr;
 	GetConfiguration(curr);
-	return q;
+	return jointVectors;
 }
 
 double* kin(double theta1, double theta2, double d3, double theta4) {
