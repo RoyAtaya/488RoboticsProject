@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 
 		if (c != ESC) {
-			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function\n";
+			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function. Press 3 to Grasp.\n";
 			ch = _getch();
 
 			if (ch == '1') { //Forward Kinematics (WHERE/KIN)
@@ -111,7 +111,19 @@ int main(int argc, char* argv[]) {
 					MoveToConfiguration(qFinal, true);
 				}
 			}
-
+			else if (ch == '3') {
+				printf("Please input 1 to close the gripper, 2 to open the gripper.\n");
+				ch = _getch();
+				if (ch == '1') {
+					bool closed = Grasp(true);
+					printf("Closed = %d\n", closed);
+				}
+				else if (ch == '2') {
+					bool opened = Grasp(false);
+					printf("Opened = %d\n", opened);
+				}
+			}
+			
 			printf("Press any key to continue \n\n");
 			printf("Press ESC to exit \n\n");
 			c = _getch();
@@ -157,8 +169,8 @@ double* kin(double theta1, double theta2, double d3, double theta4) {
 	};
 
 	double T34[4][4] = { //Translation Matrix
-		{valueRounding(cos(theta4)), valueRounding(-sin(theta4)), 0, 0}, // last element of row was a 1
-		{valueRounding(sin(theta4)), valueRounding(cos(theta4)), 0, 0}, // last element of row was a 1
+		{valueRounding(cos(theta4)), valueRounding(-sin(theta4)), 0, 0}, 
+		{valueRounding(sin(theta4)), valueRounding(cos(theta4)), 0, 0}, 
 		{0, 0, 1, d3},
 		{0, 0, 0, 1}
 	};
