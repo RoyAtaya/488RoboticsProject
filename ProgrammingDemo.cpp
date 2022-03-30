@@ -45,8 +45,27 @@ int main(int argc, char* argv[]) {
 	double y;
 	double z;
 	double phi;
+
 	JOINT q;
-	printf("Keep this window in focus, and...\n");
+
+	double x1;
+	double y1;
+	double z1;
+	double phi1;
+
+	double x2;
+	double y2;
+	double z2;
+	double phi2;
+
+	double x3;
+	double y3;
+	double z3;
+	double phi3;
+	
+	JOINT qv1;
+	JOINT qv2;
+	JOINT qv3;
 
 	char ch;
 	int c;
@@ -63,7 +82,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 
 		if (c != ESC) {
-			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function. Press 3 to Grasp.\n";
+			cout << "Press 1 to initiate WHERE function. Press 2 to initiate SOLVE function. Press 3 to initiate trajectory planner. Press 4 to Grasp.\n";
 			ch = _getch();
 
 			if (ch == '1') { //Forward Kinematics (WHERE/KIN)
@@ -104,6 +123,49 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			else if (ch == '3') {
+				printf("Trajectory Planner:  You must input 3 joint vectors nad the total time of the trajectory.\n");
+				cout << "Please input the values for your first vector: x (m), y (m), z (m), and phi (deg)\nx : ";
+				cin >> x1;
+				cout << "y : ";
+				cin >> y1;
+				cout << "z : ";
+				cin >> z1;
+				cout << "phi : ";
+				cin >> phi1;
+				phi1 = DEG2RAD(phi1);
+				if (!solve(x1, y1, z1, phi1, qv1)) {
+					printf("The coordinates entered are outside the joint space of the robot.\n\n");
+				}
+				else {
+					cout << "Please input the values for your second vector: x (m), y (m), z (m), and phi (deg)\nx : ";
+					cin >> x2;
+					cout << "y : ";
+					cin >> y2;
+					cout << "z : ";
+					cin >> z2;
+					cout << "phi : ";
+					cin >> phi2;
+					phi2 = DEG2RAD(phi2);
+					if (!solve(x2, y2, z1, phi2, qv2)) {
+						printf("The coordinates entered are outside the joint space of the robot.\n\n");
+					}
+					else {
+						cout << "Please input the values for your third and final vector: x (m), y (m), z (m), and phi (deg)\nx : ";
+						cin >> x3;
+						cout << "y : ";
+						cin >> y3;
+						cout << "z : ";
+						cin >> z3;
+						cout << "phi : ";
+						cin >> phi3;
+						phi3 = DEG2RAD(phi3);
+						if (!solve(x3, y3, z3, phi3, qv3)) {
+							printf("The coordinates entered are outside the joint space of the robot.\n\n");
+						}
+					}
+				}
+			}
+			else if (ch == '4') {
 				printf("Please input 1 to close the gripper, 2 to open the gripper.\n");
 				ch = _getch();
 				if (ch == '1') {
