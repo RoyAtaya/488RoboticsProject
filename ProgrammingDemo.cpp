@@ -9,6 +9,8 @@
 #include <string>
 #include <cmath>
 using namespace std;
+typedef double SPLCOEFF[4][4];
+typedef double JOINTMAT[4][5];
 
 //robot constants for lengths
 const double a1 = 0.195;
@@ -17,12 +19,15 @@ const double d1 = 0.405;
 const double d2 = 0.07;
 const double d4 = 0.140;
 
+
+
 bool where(double theta1, double theta2, double d3, double theta4, JOINT& conf);	//Where function used to find where the robot will end up with joint parameters
 bool kin(double theta1, double theta2, double d3, double theta4, JOINT &conf);	//Solves the Transform Matrices from joint parameters
 bool solve(double x, double y, double z, double phi, JOINT &conf1);				//Solve function used to find joint parameters of the end effector location
 bool invkin(double x, double y, double z, double phi, JOINT& conf1, JOINT& conf2);				//Solves the Inverse Kinematics using the robots parameters 
-bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, int time);
-double mixOrMax(double left, double middle, double right, int t);
+bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF &spl0, SPLCOEFF &spl1, SPLCOEFF &spl2, SPLCOEFF &spl3);
+double minOrMax(double left, double middle, double right, double t);
+void buildVelocityMat(JOINTMAT& pts, JOINTMAT& vels, double t);
 
 struct T {
 	double result[4][4] = {
@@ -76,7 +81,12 @@ int main(int argc, char* argv[]) {
 	JOINT qv3;
 	JOINT qv4;
 
-	int time;
+	SPLCOEFF spl0;
+	SPLCOEFF spl1;
+	SPLCOEFF spl2;
+	SPLCOEFF spl3;
+
+	double time;
 
 	char ch;
 	int c;
@@ -189,7 +199,7 @@ int main(int argc, char* argv[]) {
 							else {
 								cout << "Please input the total time the trajectory should take in seconds \ntime (s) : ";
 								cin >> time;
-								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time)) {
+								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time, spl0, spl1, spl2, spl3)) {
 									printf("something went wrong\n");
 								}
 								else {
@@ -430,20 +440,53 @@ bool invkin(double x, double y, double z, double phi, JOINT &q1, JOINT &q2) {
 
 }
 
-bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, int time) {
-	bool finished = false;
-	bool doneSegment = false;
+bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3) {
+	double t = time / 4.0;
+	int i = 0;
+	JOINTMAT pts = {
+		{qv0[0], qv1[0], qv2[0], qv3[0], qv4[0]},
+		{qv0[1], qv1[1], qv2[1], qv3[1], qv4[1]},
+		{qv0[2], qv1[2], qv2[2], qv3[2], qv4[2]},
+		{qv0[3], qv1[3], qv2[3], qv3[3], qv4[3]}
+	};
 
+	JOINTMAT vels = {
+		{0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0}
+	};
 
+	buildVelocityMat(pts, vels, t);
 
-	while (!finished) {
+	for (i = 0; i < 4; i++) {
+		spl0[i][0] = pts[0][i];
+		spl0[i][1] = vels[0][i];
+		spl0[i][2] = (3 / pow(t, 2)) * (pts[0][i + 1] - pts[0][i]) - (vels[0][i] * 2 / t) - (vels[0][i + 1] * 1 / t);
+		spl0[i][3] = (-2 / pow(t, 3)) * (pts[0][i + 1] - pts[0][i]) + ((vels[0][i + 1] + vels[0][i]) * 1 / pow(t, 2));
 
+		spl1[i][0] = pts[1][i];
+		spl1[i][1] = vels[1][i];
+		spl1[i][2] = (3 / pow(t, 2)) * (pts[1][i + 1] - pts[1][i]) - (vels[1][i] * 2 / t) - (vels[1][i + 1] * 1 / t);
+		spl1[i][3] = (-2 / pow(t, 3)) * (pts[1][i + 1] - pts[1][i]) + ((vels[1][i + 1] + vels[1][i]) * 1 / pow(t, 2));
+
+		spl2[i][0] = pts[2][i];
+		spl2[i][1] = vels[2][i];
+		spl2[i][2] = (3 / pow(t, 2)) * (pts[2][i + 1] - pts[2][i]) - (vels[2][i] * 2 / t) - (vels[2][i + 1] * 1 / t);
+		spl2[i][3] = (-2 / pow(t, 3)) * (pts[2][i + 1] - pts[2][i]) + ((vels[2][i + 1] + vels[2][i]) * 1 / pow(t, 2));
+
+		spl3[i][0] = pts[3][i];
+		spl3[i][1] = vels[3][i];
+		spl3[i][2] = (3 / pow(t, 2)) * (pts[3][i + 1] - pts[3][i]) - (vels[3][i] * 2 / t) - (vels[3][i + 1] * 1 / t);
+		spl3[i][3] = (-2 / pow(t, 3)) * (pts[3][i + 1] - pts[3][i]) + ((vels[3][i + 1] + vels[3][i]) * 1 / pow(t, 2));
 	}
 
-	return finished;
+
+
+	return true;
 }
 
-double mixOrMax(double left, double middle, double right, int t) {
+double minOrMax(double left, double middle, double right, double t) {
 	if ((left <= middle) and (right <= middle) ||
 		(left >= middle) and (right >= middle)) {
 		return 0.0;
@@ -453,5 +496,22 @@ double mixOrMax(double left, double middle, double right, int t) {
 		double slopeRight = (right - middle) / t;
 		double slopeAvg = (slopeLeft + slopeRight) / 2;
 		return slopeAvg;
+	}
+}
+
+void buildVelocityMat(JOINTMAT &pts, JOINTMAT& vels, double t) {
+	for (int i = 0; i < 3; i++) {
+		if (i == 0 || i == 3) {
+			vels[0][i] = 0.0;
+			vels[1][i] = 0.0;
+			vels[2][i] = 0.0;
+			vels[3][i] = 0.0;
+		}
+		else {
+			vels[0][i] = minOrMax(pts[0][i - 1], pts[0][i], pts[0][i + 1], t);
+			vels[1][i] = minOrMax(pts[1][i - 1], pts[1][i], pts[1][i + 1], t);
+			vels[2][i] = minOrMax(pts[2][i - 1], pts[2][i], pts[2][i + 1], t);
+			vels[3][i] = minOrMax(pts[3][i - 1], pts[3][i], pts[3][i + 1], t);
+		}
 	}
 }
