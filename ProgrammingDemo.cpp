@@ -21,6 +21,8 @@ bool where(double theta1, double theta2, double d3, double theta4, JOINT& conf);
 bool kin(double theta1, double theta2, double d3, double theta4, JOINT &conf);	//Solves the Transform Matrices from joint parameters
 bool solve(double x, double y, double z, double phi, JOINT &conf1);				//Solve function used to find joint parameters of the end effector location
 bool invkin(double x, double y, double z, double phi, JOINT& conf1, JOINT& conf2);				//Solves the Inverse Kinematics using the robots parameters 
+bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, int time);
+double mixOrMax(double left, double middle, double right, int t);
 
 struct T {
 	double result[4][4] = {
@@ -62,10 +64,19 @@ int main(int argc, char* argv[]) {
 	double y3;
 	double z3;
 	double phi3;
+
+	double x4;
+	double y4;
+	double z4;
+	double phi4;
 	
+	JOINT qv0;
 	JOINT qv1;
 	JOINT qv2;
 	JOINT qv3;
+	JOINT qv4;
+
+	int time;
 
 	char ch;
 	int c;
@@ -123,7 +134,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			else if (ch == '3') {
-				printf("Trajectory Planner:  You must input 3 joint vectors nad the total time of the trajectory.\n");
+				printf("Trajectory Planner:  You must input 4 joint vectors nad the total time of the trajectory.\n");
 				cout << "Please input the values for your first vector: x (m), y (m), z (m), and phi (deg)\nx : ";
 				cin >> x1;
 				cout << "y : ";
@@ -150,7 +161,7 @@ int main(int argc, char* argv[]) {
 						printf("The coordinates entered are outside the joint space of the robot.\n\n");
 					}
 					else {
-						cout << "Please input the values for your third and final vector: x (m), y (m), z (m), and phi (deg)\nx : ";
+						cout << "Please input the values for your third vector: x (m), y (m), z (m), and phi (deg)\nx : ";
 						cin >> x3;
 						cout << "y : ";
 						cin >> y3;
@@ -161,6 +172,30 @@ int main(int argc, char* argv[]) {
 						phi3 = DEG2RAD(phi3);
 						if (!solve(x3, y3, z3, phi3, qv3)) {
 							printf("The coordinates entered are outside the joint space of the robot.\n\n");
+						}
+						else {
+							cout << "Please input the values for your fourth and final vector: x (m), y (m), z (m), and phi (deg)\nx : ";
+							cin >> x4;
+							cout << "y : ";
+							cin >> y4;
+							cout << "z : ";
+							cin >> z4;
+							cout << "phi : ";
+							cin >> phi4;
+							phi4 = DEG2RAD(phi4);
+							if (!solve(x4, y4, z4, phi4, qv4)) {
+								printf("The coordinates entered are outside the joint space of the robot.\n\n");
+							}
+							else {
+								cout << "Please input the total time the trajectory should take in seconds \ntime (s) : ";
+								cin >> time;
+								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time)) {
+									printf("something went wrong\n");
+								}
+								else {
+									printf("Succes!!\n");
+								}
+							}
 						}
 					}
 				}
@@ -393,4 +428,30 @@ bool invkin(double x, double y, double z, double phi, JOINT &q1, JOINT &q2) {
 		return true;
 	}
 
+}
+
+bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, int time) {
+	bool finished = false;
+	bool doneSegment = false;
+
+
+
+	while (!finished) {
+
+	}
+
+	return finished;
+}
+
+double mixOrMax(double left, double middle, double right, int t) {
+	if ((left <= middle) and (right <= middle) ||
+		(left >= middle) and (right >= middle)) {
+		return 0.0;
+	}
+	else {
+		double slopeLeft = (middle - left) / t;
+		double slopeRight = (right - middle) / t;
+		double slopeAvg = (slopeLeft + slopeRight) / 2;
+		return slopeAvg;
+	}
 }
