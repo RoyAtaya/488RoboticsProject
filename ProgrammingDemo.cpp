@@ -199,8 +199,9 @@ int main(int argc, char* argv[]) {
 							else {
 								cout << "Please input the total time the trajectory should take in seconds \ntime (s) : ";
 								cin >> time;
+								GetConfiguration(qv0);
 								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time, spl0, spl1, spl2, spl3)) {
-									printf("something went wrong\n");
+									printf("Somewhere in your planned trajectory a joint limit was exceeded\n");
 								}
 								else {
 									printf("Succes!!\n");
@@ -348,14 +349,12 @@ bool solve(double x, double y, double z, double phi, JOINT &conf) {
 			theta2_1 < -100.0 || theta2_1 > 100.0 ||
 			d3 < -200.0 || d3 > -100.0 ||
 			theta4_1 < -160.0 || theta4_1 > 160.0) {
-			printf("q1 is invalid\n");
 			q1Valid = false;
 		}
 		else if (theta1_2 < -150.0 || theta1_2 > 150.0 ||
 			theta2_2 < -100.0 || theta2_2 > 100.0 ||
 			d3 < -200.0 || d3 > -100.0 ||
 			theta4_2 < -160.0 || theta4_2 > 160.0) {
-			printf("q2 is invalid\n");
 			q2Valid = false;
 		}
 
@@ -402,6 +401,8 @@ bool solve(double x, double y, double z, double phi, JOINT &conf) {
 			conf[2] = q1[2];
 			conf[3] = q1[3];
 		}
+		printf("Joint vector: [%lf, %lf, %lf, %lf]\n",
+			conf[0], conf[1], conf[2], conf[3]);
 		return true;
 	}
 }
@@ -420,12 +421,6 @@ bool invkin(double x, double y, double z, double phi, JOINT &q1, JOINT &q2) {
 		double theta4_1 = theta1_1 + theta2_1 - phi;
 		double theta4_2 = theta1_2 + theta2_2 - phi;
 		double d3 = valueRounding(d1 + d2 - z - d4 - 0.410);
-
-		printf("Joint vector 1: [%lf, %lf, %lf, %lf]\n",
-			theta1_1 * 180 / PI, theta2_1 * 180 / PI, d3*1000, theta4_1 * 180 / PI);
-
-		printf("Joint vector 2: [%lf, %lf, %fl, %lf]\n",
-			theta1_2 * 180 / PI, theta2_2 * 180 / PI, d3*1000, theta4_2 * 180 / PI);
 
 		q1[0] = theta1_1 * 180 / PI;
 		q1[1] = theta2_1 * 180 / PI;
@@ -481,9 +476,44 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 		spl3[i][3] = (-2 / pow(t, 3)) * (pts[3][i + 1] - pts[3][i]) + ((vels[3][i + 1] + vels[3][i]) * 1 / pow(t, 2));
 	}
 
+	double numcycles = time / 0.020;
+	bool limitExceeded = false;
 
+	for (int k = 0; k < 3; k++) {
+		for (int j = 1; j <= numcycles; j++) {
+			double t = i * 0.020;
+			double pos0 = spl0[k][0] + spl0[k][1] * t + spl0[k][2] * pow(t, 2) + spl0[k][3] * pow(t, 3);
+			double pos1 = spl1[k][0] + spl1[k][1] * t + spl1[k][2] * pow(t, 2) + spl1[k][3] * pow(t, 3);
+			double pos2 = spl2[k][0] + spl2[k][1] * t + spl2[k][2] * pow(t, 2) + spl2[k][3] * pow(t, 3);
+			double pos3 = spl3[k][0] + spl3[k][1] * t + spl3[k][2] * pow(t, 2) + spl3[k][3] * pow(t, 3);
 
-	return true;
+			double vel0 = spl0[k][1] + 2 * spl0[k][2] * t + 3 * spl0[k][3] * pow(t, 2);
+			double vel1 = spl1[k][1] + 2 * spl1[k][2] * t + 3 * spl1[k][3] * pow(t, 2);
+			double vel2 = spl2[k][1] + 2 * spl2[k][2] * t + 3 * spl2[k][3] * pow(t, 2);
+			double vel3 = spl3[k][1] + 2 * spl3[k][2] * t + 3 * spl3[k][3] * pow(t, 2);
+
+			if (pos0 < -150.0 || pos0 > 150.0 ||
+				pos1 < -100.0 || pos1 > 100.0 ||
+				pos2 < -200.0 || pos2 > -100.0 ||
+				pos3 < -160.0 || pos3 > 160.0) {
+				limitExceeded = true;
+				break;
+			}
+			else if (vel0 < -150.0 || vel0 > 150.0 ||
+				vel1 < -150.0 || vel1 > 150.0 ||
+				vel2 < -50.0 || vel2 > 50.0 ||
+				vel3 < -150.0 || vel3 > 150.0) {
+				limitExceeded = true;
+				break;
+			}
+		}
+		if (limitExceeded) {
+			break;
+		}
+	}
+
+	if (limitExceeded) return false;
+	else return true;
 }
 
 double minOrMax(double left, double middle, double right, double t) {
