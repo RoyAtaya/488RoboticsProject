@@ -26,7 +26,7 @@ bool solve(double x, double y, double z, double phi, JOINT& conf1);						//Solve
 bool invkin(double x, double y, double z, double phi, JOINT& conf1, JOINT& conf2);		//Solves the Inverse Kinematics using the robots parameters 
 																						//Trajectory Planner of the movements
 bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3);
-bool execTrajectory(moves_Conf, velocity_array, acceleration_array, time);				//Executes the motion of the Trajectory planning using POS, Vec, Acc=0
+//bool execTrajectory(moves_Conf, velocity_array, acceleration_array, time);				//Executes the motion of the Trajectory planning using POS, Vec, Acc=0
 double minOrMax(double left, double middle, double right, double t);					//chooses the slope??
 void buildVelocityMat(JOINTMAT& pts, JOINTMAT& vels, double t);							//Build a matrix of avg velocity
 
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
 					printf("The coordinates entered are outside the joint space of the robot.\n\n");
 				}
 				else {
-					MoveToConfiguration(q, true);
+					MoveToConfiguration(q, true);//Not Sure this works
 				}
 			}
 			else if (ch == '3') {
@@ -211,6 +211,9 @@ int main(int argc, char* argv[]) {
 						}
 					}
 				}
+				//values entered now run trajectory
+
+
 			}
 			else if (ch == '4') {
 				printf("Please input 1 to close the gripper, 2 to open the gripper.\n");
@@ -437,7 +440,7 @@ bool invkin(double x, double y, double z, double phi, JOINT& q1, JOINT& q2) {
 }
 
 bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3) {
-	double t = time / 4.0;
+	double t = time / 4.0;//i think using this t is wrong in spline calcs
 	int i = 0;
 	JOINTMAT pts = {
 		{qv0[0], qv1[0], qv2[0], qv3[0], qv4[0]},
@@ -455,7 +458,7 @@ bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 
 	buildVelocityMat(pts, vels, t);
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {//not sure the right use of t
 		spl0[i][0] = pts[0][i];
 		spl0[i][1] = vels[0][i];
 		spl0[i][2] = (3 / pow(t, 2)) * (pts[0][i + 1] - pts[0][i]) - (vels[0][i] * 2 / t) - (vels[0][i + 1] * 1 / t);
@@ -478,34 +481,43 @@ bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 	}
 
 	double numcycles = time / 0.020; // think we need to use the time divided by 4
+	int numcycles = int(numcycles);
 	bool limitExceeded = false;
 
-	for (int k = 0; k < 4; k++) {//should be 4
-		for (int j = 1; j <= numcycles; j++) {
-			double t = i * 0.020; //is this supposed to be j
-			double pos0 = spl0[k][0] + spl0[k][1] * t + spl0[k][2] * pow(t, 2) + spl0[k][3] * pow(t, 3);
-			double pos1 = spl1[k][0] + spl1[k][1] * t + spl1[k][2] * pow(t, 2) + spl1[k][3] * pow(t, 3);
-			double pos2 = spl2[k][0] + spl2[k][1] * t + spl2[k][2] * pow(t, 2) + spl2[k][3] * pow(t, 3);
-			double pos3 = spl3[k][0] + spl3[k][1] * t + spl3[k][2] * pow(t, 2) + spl3[k][3] * pow(t, 3);
+	double PosArray[4][numcycles];
+	double VecArray[4][numcycles];
+	double AccArray[4][numcycles];
 
-			double vel0 = spl0[k][1] + 2 * spl0[k][2] * t + 3 * spl0[k][3] * pow(t, 2);
-			double vel1 = spl1[k][1] + 2 * spl1[k][2] * t + 3 * spl1[k][3] * pow(t, 2);
-			double vel2 = spl2[k][1] + 2 * spl2[k][2] * t + 3 * spl2[k][3] * pow(t, 2);
-			double vel3 = spl3[k][1] + 2 * spl3[k][2] * t + 3 * spl3[k][3] * pow(t, 2);
+	double pos0[numcycles];
+	//this can be done better
+
+	for (int i = 0; i < 4; i++) {//should be 4
+		for (int j = 0; j <= numcycles; j++) {
+			double t = j * 0.020; //is this supposed to be j
+			double pos0[j] = spl0[i][0] + spl0[i][1] * t + spl0[i][2] * pow(t, 2) + spl0[i][3] * pow(t, 3);
+			double pos1[j] = spl1[i][0] + spl1[i][1] * t + spl1[i][2] * pow(t, 2) + spl1[i][3] * pow(t, 3);
+			double pos2[j] = spl2[i][0] + spl2[i][1] * t + spl2[i][2] * pow(t, 2) + spl2[i][3] * pow(t, 3);
+			double pos3[j] = spl3[i][0] + spl3[i][1] * t + spl3[i][2] * pow(t, 2) + spl3[i][3] * pow(t, 3);
+
+			double vel0[j] = spl0[i][1] + 2 * spl0[i][2] * t + 3 * spl0[i][3] * pow(t, 2);
+			double vel1[j] = spl1[i][1] + 2 * spl1[i][2] * t + 3 * spl1[i][3] * pow(t, 2);
+			double vel2[j] = spl2[i][1] + 2 * spl2[i][2] * t + 3 * spl2[i][3] * pow(t, 2);
+			double vel3[j] = spl3[i][1] + 2 * spl3[i][2] * t + 3 * spl3[i][3] * pow(t, 2);
 
 			/* just put to have could also put 0 think we need to have something
 			* but it doesnt work
-			double acc1 = 2 * spl0[k][2] + 6 * spl0[k][3] * t;
-			double acc2 = 2 * spl1[k][2] + 6 * spl1[k][3] * t;
-			double acc3 = 2 * spl2[k][2] + 6 * spl2[k][3] * t;
-			double acc4 = 2 * spl3[k][2] + 6 * spl3[k][3] * t;
+			double acc1[j] = 2 * spl0[i][2] + 6 * spl0[i][3] * t;
+			double acc2[j] = 2 * spl1[i][2] + 6 * spl1[i][3] * t;
+			double acc3[j] = 2 * spl2[i][2] + 6 * spl2[i][3] * t;
+			double acc4[j] = 2 * spl3[i][2] + 6 * spl3[i][3] * t;
 			*/
 			/*
-			double acc1 = 0;
-			double acc2 = 0;
-			double acc3 = 0;
-			double acc4 = 0;
+			double acc1[j] = 0;
+			double acc2[j] = 0;
+			double acc3[j] = 0;
+			double acc4[j] = 0;
 			*/
+			
 
 			if (pos0 < -150.0 || pos0 > 150.0 ||
 				pos1 < -100.0 || pos1 > 100.0 ||
@@ -540,7 +552,7 @@ bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 	if (limitExceeded) return false;
 	else return true;
 }
-
+/*
 bool execTrajectory(conf, vel, acc, time) {
 	double numcycles = time / 0.020;
 	for (int i = 0; i < numcycles; i++)
@@ -549,7 +561,7 @@ bool execTrajectory(conf, vel, acc, time) {
 	}
 
 }
-
+*/
 
 double minOrMax(double left, double middle, double right, double t) {
 	if ((left <= middle) and (right <= middle) ||
