@@ -19,6 +19,14 @@ const double d1 = 0.405;
 const double d2 = 0.07;
 const double d4 = 0.140;
 
+double* pos0Array;
+double* pos1Array;
+double* pos2Array;
+double* pos3Array;
+double* vel0Array;
+double* vel1Array;
+double* vel2Array;
+double* vel3Array;
 
 
 bool where(double theta1, double theta2, double d3, double theta4, JOINT& conf);	//Where function used to find where the robot will end up with joint parameters
@@ -28,6 +36,7 @@ bool invkin(double x, double y, double z, double phi, JOINT& conf1, JOINT& conf2
 bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF &spl0, SPLCOEFF &spl1, SPLCOEFF &spl2, SPLCOEFF &spl3);
 double minOrMax(double left, double middle, double right, double t);
 void buildVelocityMat(JOINTMAT& pts, JOINTMAT& vels, double t);
+bool execTrajectory();
 
 struct T {
 	double result[4][4] = {
@@ -199,13 +208,40 @@ int main(int argc, char* argv[]) {
 							else {
 								cout << "Please input the total time the trajectory should take in seconds \ntime (s) : ";
 								cin >> time;
+								int totalCycles = time / 0.020;
+								pos0Array = new double[totalCycles];
+								pos1Array = new double[totalCycles];
+								pos2Array = new double[totalCycles];
+								pos3Array = new double[totalCycles];
+								vel0Array = new double[totalCycles];
+								vel1Array = new double[totalCycles];
+								vel2Array = new double[totalCycles];
+								vel3Array = new double[totalCycles];
 								GetConfiguration(qv0);
 								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time, spl0, spl1, spl2, spl3)) {
 									printf("Somewhere in your planned trajectory a joint limit was exceeded\n");
 								}
 								else {
-									printf("Succes!!\n");
+									printf("Success!!\n");
+									cout << "Would you like to excecute the trajectory?\ny / n : ";
+									ch = _getch();
+									if (ch == 'y') {
+										if (!execTrajectory()) {
+											printf("something went wrong\n");
+										}
+									}
+									else {
+										printf("Cancelling\n");
+									}
 								}
+								delete[] pos0Array;
+								delete[] pos1Array;
+								delete[] pos2Array;
+								delete[] pos3Array;
+								delete[] vel0Array;
+								delete[] vel1Array;
+								delete[] vel2Array;
+								delete[] vel3Array;
 							}
 						}
 					}
@@ -476,21 +512,20 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 		spl3[i][3] = (-2 / pow(t, 3)) * (pts[3][i + 1] - pts[3][i]) + ((vels[3][i + 1] + vels[3][i]) * 1 / pow(t, 2));
 	}
 
-	double numcycles = time / 0.020;
+	const int numCycles = t / 0.020;
 	bool limitExceeded = false;
+	for (int k = 0; k < 4; k++) {
+		for (int j = 1; j <= numCycles; j++) {
+			double tms = j * 0.020;
+			double pos0 = spl0[k][0] + spl0[k][1] * tms + spl0[k][2] * pow(tms, 2) + spl0[k][3] * pow(tms, 3);
+			double pos1 = spl1[k][0] + spl1[k][1] * tms + spl1[k][2] * pow(tms, 2) + spl1[k][3] * pow(tms, 3);
+			double pos2 = spl2[k][0] + spl2[k][1] * tms + spl2[k][2] * pow(tms, 2) + spl2[k][3] * pow(tms, 3);
+			double pos3 = spl3[k][0] + spl3[k][1] * tms + spl3[k][2] * pow(tms, 2) + spl3[k][3] * pow(tms, 3);
 
-	for (int k = 0; k < 3; k++) {
-		for (int j = 1; j <= numcycles; j++) {
-			double t = i * 0.020;
-			double pos0 = spl0[k][0] + spl0[k][1] * t + spl0[k][2] * pow(t, 2) + spl0[k][3] * pow(t, 3);
-			double pos1 = spl1[k][0] + spl1[k][1] * t + spl1[k][2] * pow(t, 2) + spl1[k][3] * pow(t, 3);
-			double pos2 = spl2[k][0] + spl2[k][1] * t + spl2[k][2] * pow(t, 2) + spl2[k][3] * pow(t, 3);
-			double pos3 = spl3[k][0] + spl3[k][1] * t + spl3[k][2] * pow(t, 2) + spl3[k][3] * pow(t, 3);
-
-			double vel0 = spl0[k][1] + 2 * spl0[k][2] * t + 3 * spl0[k][3] * pow(t, 2);
-			double vel1 = spl1[k][1] + 2 * spl1[k][2] * t + 3 * spl1[k][3] * pow(t, 2);
-			double vel2 = spl2[k][1] + 2 * spl2[k][2] * t + 3 * spl2[k][3] * pow(t, 2);
-			double vel3 = spl3[k][1] + 2 * spl3[k][2] * t + 3 * spl3[k][3] * pow(t, 2);
+			double vel0 = spl0[k][1] + 2 * spl0[k][2] * tms + 3 * spl0[k][3] * pow(tms, 2);
+			double vel1 = spl1[k][1] + 2 * spl1[k][2] * tms + 3 * spl1[k][3] * pow(tms, 2);
+			double vel2 = spl2[k][1] + 2 * spl2[k][2] * tms + 3 * spl2[k][3] * pow(tms, 2);
+			double vel3 = spl3[k][1] + 2 * spl3[k][2] * tms + 3 * spl3[k][3] * pow(tms, 2);
 
 			if (pos0 < -150.0 || pos0 > 150.0 ||
 				pos1 < -100.0 || pos1 > 100.0 ||
@@ -506,6 +541,17 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 				limitExceeded = true;
 				break;
 			}
+			else {
+				pos0Array[k * numCycles + (j - 1)] = pos0;
+				pos1Array[k * numCycles + (j - 1)] = pos1;
+				pos2Array[k * numCycles + (j - 1)] = pos2;
+				pos3Array[k * numCycles + (j - 1)] = pos3;
+
+				vel0Array[k * numCycles + (j - 1)] = vel0;
+				vel1Array[k * numCycles + (j - 1)] = vel1;
+				vel2Array[k * numCycles + (j - 1)] = vel2;
+				vel3Array[k * numCycles + (j - 1)] = vel3;
+			}
 		}
 		if (limitExceeded) {
 			break;
@@ -514,6 +560,10 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 
 	if (limitExceeded) return false;
 	else return true;
+}
+
+bool execTrajectory() {
+
 }
 
 double minOrMax(double left, double middle, double right, double t) {
@@ -530,7 +580,7 @@ double minOrMax(double left, double middle, double right, double t) {
 }
 
 void buildVelocityMat(JOINTMAT &pts, JOINTMAT& vels, double t) {
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		if (i == 0 || i == 3) {
 			vels[0][i] = 0.0;
 			vels[1][i] = 0.0;
