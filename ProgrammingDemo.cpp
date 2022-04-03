@@ -206,14 +206,13 @@ int main(int argc, char* argv[]) {
 								}
 								else {
 									printf("Succes!!\n");
+									//values entered now run trajectory
+									//execTrajectory()
 								}
 							}
 						}
 					}
 				}
-				//values entered now run trajectory
-
-
 			}
 			else if (ch == '4') {
 				printf("Please input 1 to close the gripper, 2 to open the gripper.\n");
@@ -440,7 +439,7 @@ bool invkin(double x, double y, double z, double phi, JOINT& q1, JOINT& q2) {
 }
 
 bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3) {
-	double t = time / 4.0;//i think using this t is wrong in spline calcs
+	double t = time / 4.0;//i think using this t is wrong in spline calculations
 	int i = 0;
 	JOINTMAT pts = {
 		{qv0[0], qv1[0], qv2[0], qv3[0], qv4[0]},
@@ -457,8 +456,10 @@ bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 	};
 
 	buildVelocityMat(pts, vels, t);
-
-	for (i = 0; i < 4; i++) {//not sure the right use of t
+	
+	//not sure the right use of t but makes sense for segments
+	//for the future segments is it t to 2t and 2t to 3t and 3t to 4t
+	for (i = 0; i < 4; i++) {
 		spl0[i][0] = pts[0][i];
 		spl0[i][1] = vels[0][i];
 		spl0[i][2] = (3 / pow(t, 2)) * (pts[0][i + 1] - pts[0][i]) - (vels[0][i] * 2 / t) - (vels[0][i + 1] * 1 / t);
@@ -480,17 +481,28 @@ bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 		spl3[i][3] = (-2 / pow(t, 3)) * (pts[3][i + 1] - pts[3][i]) + ((vels[3][i + 1] + vels[3][i]) * 1 / pow(t, 2));
 	}
 
-	double numcycles = time / 0.020; // think we need to use the time divided by 4
-	int numcycles = int(numcycles);
+	double numcycles = time / 0.020;
 	bool limitExceeded = false;
 
-	double PosArray[4][numcycles];
+	//guess this is the best way to do it
+	double PosArray[4][numcycles];//instead of numcycles we need to make a value thats large enough
 	double VecArray[4][numcycles];
 	double AccArray[4][numcycles];
 
-	double pos0[numcycles];
-	//this can be done better
+	//seems wrong to do this
+	double PosArray0[numcycles];
+	double PosArray1[numcycles];
+	double PosArray2[numcycles];
+	double PosArray3[numcycles];
 
+	//this can be done better below to either accomodate the new 4xnumcycles array
+	//the pos0 can be replaced with the above PosArray[4][numcycles]
+	//0 joint 1, 1 joint 2 etc
+	//for (first loop) i segment
+	//for (seconf loop) j //data point in segment
+	//double PosArray[j][1] = 
+	//append the arrays together.
+	//this is where im confuse about execution and it needs testing
 	for (int i = 0; i < 4; i++) {//should be 4
 		for (int j = 0; j <= numcycles; j++) {
 			double t = j * 0.020; //is this supposed to be j
@@ -561,6 +573,15 @@ bool execTrajectory(conf, vel, acc, time) {
 	}
 
 }
+*/
+
+/*
+some sort of way of writing all the data to a file or plotting
+it not sure how the matlab is implemented but also use the x and y
+to show the top view of it
+show the posotion and vel of each of the joints
+im confused what he wants
+
 */
 
 double minOrMax(double left, double middle, double right, double t) {
