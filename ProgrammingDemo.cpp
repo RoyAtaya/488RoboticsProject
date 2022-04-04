@@ -6,9 +6,15 @@
 #include <conio.h>
 #include "ensc-488.h"
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cmath>
+#include <chrono>
+#include <thread>
 using namespace std;
+using namespace std::this_thread; // sleep_for, sleep_until
+using namespace std::chrono; // nanoseconds, system_clock, seconds
+
 typedef double SPLCOEFF[4][4];
 typedef double JOINTMAT[4][5];
 
@@ -27,6 +33,10 @@ double* vel0Array;
 double* vel1Array;
 double* vel2Array;
 double* vel3Array;
+double* acc0Array;
+double* acc1Array;
+double* acc2Array;
+double* acc3Array;
 
 
 bool where(double theta1, double theta2, double d3, double theta4, JOINT& conf);	//Where function used to find where the robot will end up with joint parameters
@@ -36,7 +46,7 @@ bool invkin(double x, double y, double z, double phi, JOINT& conf1, JOINT& conf2
 bool planTrajectory(JOINT& qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF &spl0, SPLCOEFF &spl1, SPLCOEFF &spl2, SPLCOEFF &spl3);
 double minOrMax(double left, double middle, double right, double t);
 void buildVelocityMat(JOINTMAT& pts, JOINTMAT& vels, double t);
-bool execTrajectory();
+bool execTrajectory(int totalCycles);
 
 struct T {
 	double result[4][4] = {
@@ -217,6 +227,10 @@ int main(int argc, char* argv[]) {
 								vel1Array = new double[totalCycles];
 								vel2Array = new double[totalCycles];
 								vel3Array = new double[totalCycles];
+								acc0Array = new double[totalCycles];
+								acc1Array = new double[totalCycles];
+								acc2Array = new double[totalCycles];
+								acc3Array = new double[totalCycles];
 								GetConfiguration(qv0);
 								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time, spl0, spl1, spl2, spl3)) {
 									printf("Somewhere in your planned trajectory a joint limit was exceeded\n");
@@ -226,7 +240,7 @@ int main(int argc, char* argv[]) {
 									cout << "Would you like to excecute the trajectory?\ny / n : ";
 									ch = _getch();
 									if (ch == 'y') {
-										if (!execTrajectory()) {
+										if (!execTrajectory(totalCycles)) {
 											printf("something went wrong\n");
 										}
 									}
@@ -242,6 +256,10 @@ int main(int argc, char* argv[]) {
 								delete[] vel1Array;
 								delete[] vel2Array;
 								delete[] vel3Array;
+								delete[] acc0Array;
+								delete[] acc1Array;
+								delete[] acc2Array;
+								delete[] acc3Array;
 							}
 						}
 					}
@@ -472,6 +490,9 @@ bool invkin(double x, double y, double z, double phi, JOINT &q1, JOINT &q2) {
 }
 
 bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3) {
+	ofstream outputFile;
+	outputFile.open("velocityData.csv", ios::out);
+	outputFile << "time, pos0, pos1, pos2, pos3, vel0, vel1, vel2, vel3\n";
 	double t = time / 4.0;
 	int i = 0;
 	JOINTMAT pts = {
@@ -527,11 +548,17 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 			double vel2 = spl2[k][1] + 2 * spl2[k][2] * tms + 3 * spl2[k][3] * pow(tms, 2);
 			double vel3 = spl3[k][1] + 2 * spl3[k][2] * tms + 3 * spl3[k][3] * pow(tms, 2);
 
+			double acc0 = 2 * spl0[k][2] + 6 * spl0[k][3] * t;
+			double acc1 = 2 * spl1[k][2] + 6 * spl1[k][3] * t;
+			double acc2 = 2 * spl2[k][2] + 6 * spl2[k][3] * t;
+			double acc3 = 2 * spl3[k][2] + 6 * spl3[k][3] * t;
+
 			if (pos0 < -150.0 || pos0 > 150.0 ||
 				pos1 < -100.0 || pos1 > 100.0 ||
 				pos2 < -200.0 || pos2 > -100.0 ||
 				pos3 < -160.0 || pos3 > 160.0) {
 				limitExceeded = true;
+				outputFile.close();
 				break;
 			}
 			else if (vel0 < -150.0 || vel0 > 150.0 ||
@@ -539,7 +566,14 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 				vel2 < -50.0 || vel2 > 50.0 ||
 				vel3 < -150.0 || vel3 > 150.0) {
 				limitExceeded = true;
+				outputFile.close();
 				break;
+			}
+			else if (acc0 < -600.0 || acc0 > 600.0 ||
+				acc1 < -600.0 || acc1 > 600.0 ||
+				acc2 < -200.0 || acc2 > 200.0 ||
+				acc3 < -600.0 || acc3 > 600.0) {
+
 			}
 			else {
 				pos0Array[k * numCycles + (j - 1)] = pos0;
@@ -551,19 +585,59 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 				vel1Array[k * numCycles + (j - 1)] = vel1;
 				vel2Array[k * numCycles + (j - 1)] = vel2;
 				vel3Array[k * numCycles + (j - 1)] = vel3;
+
+				acc0Array[k * numCycles + (j - 1)] = acc0;
+				acc1Array[k * numCycles + (j - 1)] = acc1;
+				acc2Array[k * numCycles + (j - 1)] = acc2;
+				acc3Array[k * numCycles + (j - 1)] = acc3;
+
+				outputFile << tms+(k*numCycles) << "," << pos0 << "," << pos1 << "," << pos2 << "," << pos3 << "," << vel0 << "," << vel1 << "," << vel2 << "," << vel3 << endl;
 			}
 		}
 		if (limitExceeded) {
+			outputFile.close();
 			break;
 		}
+		outputFile.close();
 	}
 
 	if (limitExceeded) return false;
 	else return true;
 }
 
-bool execTrajectory() {
+bool execTrajectory(int totalCycles) {
+	JOINT conf;
+	JOINT vel;
+	JOINT acc;
+	bool success;
 
+	for (int i = 0; i < totalCycles; i++) {
+		conf[0] = pos0Array[i];
+		conf[1] = pos1Array[i];
+		conf[2] = pos2Array[i];
+		conf[3] = pos3Array[i];
+
+		vel[0] = vel0Array[i];
+		vel[1] = vel1Array[i];
+		vel[2] = vel2Array[i];
+		vel[3] = vel3Array[i];
+
+		acc[0] = acc0Array[i];
+		acc[1] = acc1Array[i];
+		acc[2] = acc2Array[i];
+		acc[3] = acc3Array[i];
+
+		success = MoveWithConfVelAcc(conf, vel, acc);
+		if (success) {
+			sleep_for(milliseconds(20));
+		}
+		else {
+			printf("returned false\n");
+			return false;
+		}
+	}
+
+	return true;
 }
 
 double minOrMax(double left, double middle, double right, double t) {
