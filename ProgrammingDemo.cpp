@@ -11,6 +11,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
+#include "time.h"
 using namespace std;
 using namespace std::this_thread; // sleep_for, sleep_until
 using namespace std::chrono; // nanoseconds, system_clock, seconds
@@ -38,6 +39,7 @@ double* acc1Array;
 double* acc2Array;
 double* acc3Array;
 
+const double samplingPeriod = 0.030;
 
 bool where(double theta1, double theta2, double d3, double theta4, JOINT& conf);	//Where function used to find where the robot will end up with joint parameters
 bool kin(double theta1, double theta2, double d3, double theta4, JOINT &conf);	//Solves the Transform Matrices from joint parameters
@@ -165,52 +167,68 @@ int main(int argc, char* argv[]) {
 			else if (ch == '3') {
 				printf("Trajectory Planner:  You must input 4 joint vectors nad the total time of the trajectory.\n");
 				cout << "Please input the values for your first vector: x (m), y (m), z (m), and phi (deg)\nx : ";
-				cin >> x1;
+				/*cin >> x1;
 				cout << "y : ";
 				cin >> y1;
 				cout << "z : ";
 				cin >> z1;
 				cout << "phi : ";
-				cin >> phi1;
+				cin >> phi1;*/
+				x1 = 0.336999;
+				y1 = 0.0;
+				z1 = 0.09;
+				phi1 = 90.0;
 				phi1 = DEG2RAD(phi1);
 				if (!solve(x1, y1, z1, phi1, qv1)) {
 					printf("The coordinates entered are outside the joint space of the robot.\n\n");
 				}
 				else {
 					cout << "Please input the values for your second vector: x (m), y (m), z (m), and phi (deg)\nx : ";
-					cin >> x2;
+					/*cin >> x2;
 					cout << "y : ";
 					cin >> y2;
 					cout << "z : ";
 					cin >> z2;
 					cout << "phi : ";
-					cin >> phi2;
+					cin >> phi2;*/
+					x2 = 0.0;
+					y2 = 0.336999;
+					z2 = 0.08;
+					phi2 = 90.0;
 					phi2 = DEG2RAD(phi2);
-					if (!solve(x2, y2, z1, phi2, qv2)) {
+					if (!solve(x2, y2, z2, phi2, qv2)) {
 						printf("The coordinates entered are outside the joint space of the robot.\n\n");
 					}
 					else {
 						cout << "Please input the values for your third vector: x (m), y (m), z (m), and phi (deg)\nx : ";
-						cin >> x3;
+						/*cin >> x3;
 						cout << "y : ";
 						cin >> y3;
 						cout << "z : ";
 						cin >> z3;
 						cout << "phi : ";
-						cin >> phi3;
+						cin >> phi3;*/
+						x3 = 0.142;
+						y3 = 0.195;
+						z3 = 0.07;
+						phi3 = 90.0;
 						phi3 = DEG2RAD(phi3);
 						if (!solve(x3, y3, z3, phi3, qv3)) {
 							printf("The coordinates entered are outside the joint space of the robot.\n\n");
 						}
 						else {
 							cout << "Please input the values for your fourth and final vector: x (m), y (m), z (m), and phi (deg)\nx : ";
-							cin >> x4;
+							/*cin >> x4;
 							cout << "y : ";
 							cin >> y4;
 							cout << "z : ";
 							cin >> z4;
 							cout << "phi : ";
-							cin >> phi4;
+							cin >> phi4;*/
+							x4 = 0.0;
+							y4 = 0.336999;
+							z4 = 0.06;
+							phi4 = 90.0;
 							phi4 = DEG2RAD(phi4);
 							if (!solve(x4, y4, z4, phi4, qv4)) {
 								printf("The coordinates entered are outside the joint space of the robot.\n\n");
@@ -231,6 +249,7 @@ int main(int argc, char* argv[]) {
 								acc1Array = new double[totalCycles];
 								acc2Array = new double[totalCycles];
 								acc3Array = new double[totalCycles];
+
 								GetConfiguration(qv0);
 								if (!planTrajectory(qv0, qv1, qv2, qv3, qv4, time, spl0, spl1, spl2, spl3)) {
 									printf("Somewhere in your planned trajectory a joint limit was exceeded\n");
@@ -248,6 +267,7 @@ int main(int argc, char* argv[]) {
 										printf("Cancelling\n");
 									}
 								}
+
 								delete[] pos0Array;
 								delete[] pos1Array;
 								delete[] pos2Array;
@@ -491,7 +511,7 @@ bool invkin(double x, double y, double z, double phi, JOINT &q1, JOINT &q2) {
 
 bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, double time, SPLCOEFF& spl0, SPLCOEFF& spl1, SPLCOEFF& spl2, SPLCOEFF& spl3) {
 	ofstream outputFile;
-	outputFile.open("velocityData.csv", ios::out);
+	outputFile.open("velocityData.csv", ios::trunc);
 	outputFile << "time, pos0, pos1, pos2, pos3, vel0, vel1, vel2, vel3\n";
 	double t = time / 4.0;
 	int i = 0;
@@ -533,11 +553,11 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 		spl3[i][3] = (-2 / pow(t, 3)) * (pts[3][i + 1] - pts[3][i]) + ((vels[3][i + 1] + vels[3][i]) * 1 / pow(t, 2));
 	}
 
-	const int numCycles = t / 0.020;
+	const int numCycles = t / samplingPeriod;
 	bool limitExceeded = false;
 	for (int k = 0; k < 4; k++) {
 		for (int j = 1; j <= numCycles; j++) {
-			double tms = j * 0.020;
+			double tms = j * samplingPeriod;
 			double pos0 = spl0[k][0] + spl0[k][1] * tms + spl0[k][2] * pow(tms, 2) + spl0[k][3] * pow(tms, 3);
 			double pos1 = spl1[k][0] + spl1[k][1] * tms + spl1[k][2] * pow(tms, 2) + spl1[k][3] * pow(tms, 3);
 			double pos2 = spl2[k][0] + spl2[k][1] * tms + spl2[k][2] * pow(tms, 2) + spl2[k][3] * pow(tms, 3);
@@ -591,16 +611,17 @@ bool planTrajectory(JOINT &qv0, JOINT& qv1, JOINT& qv2, JOINT& qv3, JOINT& qv4, 
 				acc2Array[k * numCycles + (j - 1)] = acc2;
 				acc3Array[k * numCycles + (j - 1)] = acc3;
 
-				outputFile << tms+(k*numCycles) << "," << pos0 << "," << pos1 << "," << pos2 << "," << pos3 << "," << vel0 << "," << vel1 << "," << vel2 << "," << vel3 << endl;
+				outputFile << tms+(k * t) << "," << pos0 << "," << pos1 << "," << pos2 << "," << pos3 << "," << vel0 << "," << vel1 << "," << vel2 << "," << vel3 << endl;
 			}
 		}
 		if (limitExceeded) {
 			outputFile.close();
 			break;
 		}
-		outputFile.close();
+		
 	}
 
+	outputFile.close();
 	if (limitExceeded) return false;
 	else return true;
 }
@@ -610,8 +631,10 @@ bool execTrajectory(int totalCycles) {
 	JOINT vel;
 	JOINT acc;
 	bool success;
-
+	time_t start, end;
+	
 	for (int i = 0; i < totalCycles; i++) {
+		auto start = high_resolution_clock::now();
 		conf[0] = pos0Array[i];
 		conf[1] = pos1Array[i];
 		conf[2] = pos2Array[i];
@@ -628,13 +651,16 @@ bool execTrajectory(int totalCycles) {
 		acc[3] = acc3Array[i];
 
 		success = MoveWithConfVelAcc(conf, vel, acc);
+		
 		if (success) {
-			sleep_for(milliseconds(20));
+			auto start = high_resolution_clock::now();
+			sleep_until(system_clock::now() + microseconds(30000));
+			auto stop = high_resolution_clock::now();
+			auto duration = duration_cast<microseconds>(stop - start);
+			cout << duration.count() << endl;
 		}
-		else {
-			printf("returned false\n");
-			return false;
-		}
+		
+		
 	}
 
 	return true;
